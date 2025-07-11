@@ -1,0 +1,15 @@
+langchain
+langchain-openai
+langchain-core
+langchain_community
+docx2txt
+pypdf
+langchain_chroma
+python-multipart
+fastapi
+uvicorn
+streamlit
+streamlit-autorefresh
+redis
+hugging_face
+sentence-transformers
