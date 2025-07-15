@@ -1,3 +1,21 @@
+"""
+langchain_utils.py
+
+This module sets up the LangChain RAG pipeline with history-aware retrieval,
+query reformulation, and response generation for a proactive network maintenance assistant.
+
+Key Features:
+- Uses HuggingFace embeddings + FAISS for document retrieval.
+- Reformulates user questions based on prior history.
+- Generates responses using system-guided prompts.
+- Supports summarization of recent conversation turns.
+
+Dependencies:
+- LangChain
+- LangChain OpenAI & HuggingFace integrations
+- FAISS
+- Python Dotenv
+"""
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate,MessagesPlaceholder
@@ -72,7 +90,7 @@ qa_prompt = ChatPromptTemplate.from_messages([
 
 def get_last_n_turns(chat_history: list[dict], n: int = 5) -> str:
     """
-    Returns the last `n` chat turns formatted as a string.
+    Returns the last n chat turns formatted as a string.
     Each turn is a dict with 'user_query' and 'gpt_response'.
     Falls back to empty string if keys are missing.
     """
@@ -89,22 +107,44 @@ def get_last_n_turns(chat_history: list[dict], n: int = 5) -> str:
     return last_n
     
 
-summary_prompt = PromptTemplate.from_template("""
-Summarize the following conversation in 1-2 clear, concise sentences. 
-Focus only on the key points discussed. Do not include filler or thoughts.
-                                              
+summary_prompt = PromptTemplate.from_template(
+"""
+Summarize the following technical conversation in 1–2 concise sentences. 
+Focus strictly on the core technical question(s) and the key solution(s) or explanation(s) provided.
+Exclude all filler or general commetarty.
+Capture only the most important technical details from both the question and answer.                                              
 
 {chat_history}
-/no_think /nothink
+/no_think /nothink /no-think 
 
                                               
 """)
 
 def get_summarization_chain(llm):
+    """
+    Creates a chain that summarizes a technical conversation using the provided LLM.
+
+    Args:
+        llm: The language model used for summarization.
+
+    Returns:
+        Runnable: A LangChain Runnable representing the summarization pipeline.
+    """
     return summary_prompt | llm | StrOutputParser()
 
 
 def get_rag_chain(model: str):
+    """
+    Builds and returns a retrieval-augmented generation (RAG) chain and its corresponding LLM.
+
+    Args:
+        model (str): The model name to use. If "qwen3", uses a locally hosted model; otherwise, uses OpenAI API.
+
+    Returns:
+        tuple: A tuple containing (rag_chain, llm)
+            - rag_chain: The full RAG chain combining history-aware retriever and QA pipeline
+            - llm: The language model used for response generation
+    """
 
     if model != "qwen3":
         llm = ChatOpenAI(
@@ -121,11 +161,12 @@ def get_rag_chain(model: str):
         temperature=0.2,     
         top_p=0.6,          
         max_tokens=256,    
-        streaming=True  
+        streaming=True,
+        verbose=True
     )
 
     history_aware_retriever=create_history_aware_retriever(llm,retriever,contextualize_q_prompt)        
-    question_answer_chain=create_stuff_documents_chain(llm,qa_prompt)
+    question_answer_chain=create_stuff_documents_chain(llm,qa_prompt, verbose=True)
     rag_chain=create_retrieval_chain(history_aware_retriever,question_answer_chain)
+    
     return rag_chain, llm
-

@@ -1,3 +1,16 @@
+"""
+db_utils.py
+
+This module handles PostgreSQL database interactions for the chatbot application.
+It includes utilities for connection management, table creation, chat logging,
+conversation title storage, and retrieval of chat history.
+
+Dependencies:
+- psycopg2
+- dotenv
+- JSON
+"""
+
 import psycopg2
 from psycopg2.extras import RealDictCursor 
 from psycopg2 import Error
@@ -5,15 +18,24 @@ import json
 
 # ---------------- Connection ---------------- #
 def get_db_connection():
+    """
+    Establishes a connection to the PostgreSQL database using psycopg2.
+
+    Returns:
+        connection (psycopg2.connection): A database connection object with RealDictCursor.
+    """
     return psycopg2.connect(
         "postgresql://neondb_owner:npg_ouH1C8PILpJk@ep-weathered-dust-a8kx2smo-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require",
-        #row_factory=
+    
         cursor_factory=RealDictCursor
-
     )
 
 # ---------------- Table Creation ---------------- #
 def create_application_logs():
+    """
+    Creates the `application_logs1` table if it does not exist.
+    Also adds a `metadata` JSONB column if missing.
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -47,6 +69,10 @@ def create_application_logs():
         conn.close()
 
 def create_conversation_titles():  
+    """
+    Creates the `conversation_titles` table if it does not exist.
+    This table stores a title for each session.
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -63,6 +89,16 @@ def create_conversation_titles():
 
 
 def insert_application_logs(session_id, user_query, gpt_response, model, metadata=None):
+    """
+    Inserts a single log entry into `application_logs1`.
+
+    Args:
+        session_id (str): Unique session ID.
+        user_query (str): The user's input message.
+        gpt_response (str): The model's generated reply.
+        model (str): Model used to generate the response.
+        metadata (dict, optional): Additional structured data (stored as JSONB).
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -76,6 +112,13 @@ def insert_application_logs(session_id, user_query, gpt_response, model, metadat
         conn.close()
 
 def save_conversation_title(session_id: str, title: str):
+    """
+    Saves or updates the title for a conversation session.
+
+    Args:
+        session_id (str): The session identifier.
+        title (str): The title summarizing the session.
+    """
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -92,6 +135,15 @@ def save_conversation_title(session_id: str, title: str):
 
 
 def get_chat_history(session_id):
+    """
+    Retrieves the full chat history for a given session ID.
+
+    Args:
+        session_id (str): The session identifier.
+
+    Returns:
+        list: A list of message dicts alternating between user and assistant roles.
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -111,6 +163,12 @@ def get_chat_history(session_id):
         conn.close()
 
 def get_all_sessions():
+    """
+    Retrieves metadata for all unique sessions including their titles and last activity.
+
+    Returns:
+        list: A list of dictionaries with keys: session_id, title, last_activity.
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:
@@ -131,6 +189,15 @@ def get_all_sessions():
 
 
 def get_conversation_title(session_id: str) -> str:
+    """
+    Retrieves the title for a specific session.
+
+    Args:
+        session_id (str): The session identifier.
+
+    Returns:
+        str: The stored conversation title or None if not found.
+    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cur:

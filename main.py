@@ -1,3 +1,24 @@
+"""
+main.py
+
+This is the entry point for the FastAPI backend that powers a LangChain-based
+chatbot for proactive network maintenance and DOCSIS-related queries.
+
+Core Features:
+- Receives user input via `/chat` endpoint
+- Uses a RAG (Retrieval-Augmented Generation) pipeline with history-aware context
+- Generates summarized metadata from chat history
+- Stores all chat logs and summaries in PostgreSQL
+- Dynamically generates conversation titles based on technical queries
+- Saves titles in both PostgreSQL and Redis for UI/UX improvements
+
+Dependencies:
+- FastAPI
+- LangChain
+- Redis
+- PostgreSQL
+- Pydantic
+"""
 from fastapi import FastAPI
 from pydantic_models import QueryInput, QueryResponse
 from langchain_utils import get_rag_chain
@@ -25,6 +46,16 @@ app = FastAPI()
 
 @app.post("/chat", response_model=QueryResponse)
 def chat(query_input: QueryInput):
+    """
+    Chat endpoint that receives a user query, retrieves context,
+    runs a RAG chain for response generation, and stores results.
+
+    Args:
+        query_input (QueryInput): Pydantic model containing question, session_id, and model.
+
+    Returns:
+        QueryResponse: Pydantic model with generated answer, session_id, and model.
+    """
 
     print(" /chat endpoint hit")
 
@@ -42,7 +73,7 @@ def chat(query_input: QueryInput):
     answer = result['answer']
     answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL).strip().strip('"')
 
-    clean_summary = sliding_summary.content.strip().replace("<think>", "").replace("</think>", "").strip()
+    #clean_summary = sliding_summary.content.strip().replace("<think>", "").replace("</think>", "").strip()
 
 
 #     current_turn = {
