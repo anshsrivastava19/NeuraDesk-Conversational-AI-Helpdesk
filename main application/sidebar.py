@@ -43,6 +43,6 @@ def display_sidebar():
 
     # Add New Thread button at the end
     st.sidebar.markdown("---")
-    if st.sidebar.button("🆕 Start New Thread"):
+    if st.sidebar.button("Start New Thread"):
         st.session_state.session_id = None
         st.session_state.messages = []
